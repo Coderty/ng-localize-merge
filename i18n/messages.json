@@ -1,0 +1,7 @@
+{
+  "locale": "en",
+  "translations": {
+    "sampleId": "sample {$SAMPLE}",
+    "sampleId_2": "sample 2 {$SAMPLE_2}"
+  }
+}

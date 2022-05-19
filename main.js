@@ -4,6 +4,7 @@
 const fs = require("fs").promises;
 const path = require("path");
 const { program } = require('commander');
+const {Translate} = require('@google-cloud/translate').v2;
 const pino = require('pino');
 const logger = pino({
     transport: {
@@ -13,24 +14,32 @@ const logger = pino({
         ignore: 'pid,hostname'
       }
     }
-  })
-
-const messagesBaseName = "messages.json";
+  });
 
 program
-    .option('-m, --missing-translation-place-holder <place holder>', 'Missing translation place holder', "!!MISSING_TRANSLATION")
-    .option('-p, --messages-base-path <path>', 'Folder path of messages base', "./i18n");
+    .option('-m, --missing-translation-place-holder <place holder>', 'missing translation place holder', "!!MISSING_TRANSLATION")
+    .option('-p, --messages-base-path <path>', 'folder path of messages base', "./i18n")
+    .option('-t, --translate', 'translate with google translator')
+    .option('-g, --google-api-key <key>', 'google api key for Cloud Translation API')
+    .option('-e, --env-file <path>', 'read in a file of environment variables');
 
 program.parse(process.argv);
 const options = program.opts();
 
+let dotEnvOptions = {};
+if(options.envFile) dotEnvOptions.path = options.envFile;
+require('dotenv').config(dotEnvOptions);
+
+const messagesBaseName = "messages.json";
 const messagesBasePath = options.messagesBasePath;
 const missingTranslationPlaceHolder = options.missingTranslationPlaceHolder;
+const googleApiKey = options.googleApiKey || process.env.GOOGLE_TRANSLATE_CREDENTIALS;
 
-logger.info("checking ",messagesBasePath);
+const translate = new Translate({key: googleApiKey});
 
 async function main() {
   try {
+    logger.info("checking ",messagesBasePath);
     const messagesBase = await readFileMessages(messagesBaseName);
     await validateMessageJSONFormat(messagesBaseName, messagesBase);
 
@@ -41,6 +50,7 @@ async function main() {
             await generateMessages(messagesBase, languageFileMessages);
         }
     }
+    logger.info("All done.");
   } catch (error) {
     logger.error(error);
   }
@@ -55,7 +65,9 @@ async function generateMessages(messagesBase, languageFileMessages){
         for(const messageBaseKey in messagesBase.translations){
             if(!messages.translations[messageBaseKey]){
                 hasMissings = true;
-                messages.translations[messageBaseKey] = `${missingTranslationPlaceHolder}${missingTranslationPlaceHolder?':':''}${messagesBase.translations[messageBaseKey]}`;
+                let translation;
+                if(options.translate) translation = await translateText(messagesBase.translations[messageBaseKey], messages.locale);
+                messages.translations[messageBaseKey] = translation || `${missingTranslationPlaceHolder}${missingTranslationPlaceHolder?':':''}${messagesBase.translations[messageBaseKey]}`;
             }
         }
 
@@ -71,7 +83,7 @@ async function generateMessages(messagesBase, languageFileMessages){
         }
 
     } catch (error) {
-        logger.error(`Error into ${languageFileMessages}:`, error);
+        logger.error(`Error into ${languageFileMessages}: ${error}`);
     }
 }
 
@@ -92,6 +104,15 @@ async function validateMessageJSONFormat(id, message){
     if(!message.hasOwnProperty('translations')) throw new Error(`Missing translations into ${id}`);
     if(typeof message['locale'] !== 'string') throw new Error(`locale value is not valid into ${id}`);
     if(typeof message['translations'] !== 'object') throw new Error(`translations value is not valid into ${id}`);
+}
+
+async function translateText(text, languaje) {
+    try {
+        const [translations] = await translate.translate(text, languaje);
+        return Array.isArray(translations) ? translations[0] : translations;
+    } catch (error) {
+        logger.error(`Error in translation: ${languaje}/${text}: ${error}`);
+    }
 }
 
 main();
