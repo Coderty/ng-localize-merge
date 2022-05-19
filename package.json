@@ -1,0 +1,38 @@
+{
+  "name": "ng-localize-merge",
+  "description": "Angular 13 translations message file merge utility",
+  "version": "0.0.1",
+  "preferGlobal": true,
+  "main": "main.js",
+  "license": "MIT",
+  "author": "Coderty S.L",
+  "homepage": "https://www.coderty.com/",
+  "directories": {
+    "bin": "./bin"
+  },
+  "bin": {
+    "coderty-localize-merge": "main.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:coderty/coderty-localize-merge.git"
+  },
+  "bugs": {
+    "url": "https://github.com/coderty/coderty-localize-merge/issues"
+  },
+  "scripts": {},
+  "dependencies": {
+    "commander": "^9.2.0",
+    "pino": "^7.11.0",
+    "pino-pretty": "^7.6.1"
+  },
+  "keywords": [
+    "i18n",
+    "localize",
+    "merge",
+    "angular"
+  ],
+  "engines": {
+    "node": ">=14.15.0"
+  }
+}
