@@ -1,7 +1,7 @@
 {
   "name": "ng-localize-merge",
   "description": "Angular 13 translations message file merge utility",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "preferGlobal": true,
   "main": "main.js",
   "license": "MIT",
