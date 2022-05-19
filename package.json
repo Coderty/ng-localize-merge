@@ -11,7 +11,7 @@
     "bin": "./bin"
   },
   "bin": {
-    "coderty-localize-merge": "main.js"
+    "ng-localize-merge": "main.js"
   },
   "repository": {
     "type": "git",
