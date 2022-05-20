@@ -20,6 +20,7 @@ program
     .option('-m, --missing-translation-place-holder <place holder>', 'missing translation place holder', "!!MISSING_TRANSLATION")
     .option('-p, --messages-base-path <path>', 'folder path of messages base', "./i18n")
     .option('-t, --translate', 'translate with google translator')
+    .option('-c, --clean', 'delete messages that do not exist in the base file of the language files')
     .option('-g, --google-api-key <key>', 'google api key for Cloud Translation API')
     .option('-e, --env-file <path>', 'read in a file of environment variables');
 
@@ -58,28 +59,34 @@ async function main() {
 
 async function generateMessages(messagesBase, languageFileMessages){
     try {
-        let hasMissings = false;
+        let hasChanges = false;
         const messages = await readFileMessages(languageFileMessages);
         await validateMessageJSONFormat(languageFileMessages, messages);
        
         for(const messageBaseKey in messagesBase.translations){
             if(!messages.translations[messageBaseKey]){
-                hasMissings = true;
+                hasChanges = true;
                 let translation;
                 if(options.translate) translation = await translateText(messagesBase.translations[messageBaseKey], messages.locale);
                 messages.translations[messageBaseKey] = translation || `${missingTranslationPlaceHolder}${missingTranslationPlaceHolder?':':''}${messagesBase.translations[messageBaseKey]}`;
             }
         }
 
-        if(hasMissings){
-            writeFileMessages(languageFileMessages, messages);
-        }
-
         // CHECK MESSAGES INTO LANGUAGE FILE THAT NOT EXISTS INTO BASE:
         for(const messageLanguageKey in messages.translations){
             if(!messagesBase.translations[messageLanguageKey]){
-                logger.warn(`Message "${messageLanguageKey}" found in ${languageFileMessages} file that does not exist in messages base file.`);
+                if(options.clean){
+                    hasChanges = true;
+                    delete messages.translations[messageLanguageKey];
+                    logger.warn(`Message "${messageLanguageKey}" removed from ${languageFileMessages} because it does not exist in the base file.`);
+                }else{
+                    logger.warn(`Message "${messageLanguageKey}" found in ${languageFileMessages} file that does not exist in messages base file.`);
+                }
             }
+        }
+
+        if(hasChanges){
+            writeFileMessages(languageFileMessages, messages);
         }
 
     } catch (error) {
